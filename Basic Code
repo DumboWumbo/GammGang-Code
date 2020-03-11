@@ -1,0 +1,47 @@
+import base64
+import json
+import time
+import os
+
+with open("Bad.jpg", "rb") as img_file:
+  my_string = base64.b64encode(img_file.read())
+with open("testfile.txt", "w") as File:
+  File.write((my_string.decode("utf-8")))
+  openFile = open("testfile.txt")
+
+path = "/tmp/experiment"
+
+try:
+  os.mkdir(path)
+except OSError:
+  print("Creation of directory %s unsuccesfull" % path)
+else:
+  print("Creation of directory %s succesfull" % path)
+pyTime = str(time.time())
+radiationImage = {
+  pyTime: openFile.read()
+}
+
+filePath= (path + "/" + str(time.time())+ ".json")
+with open(filePath, "w") as outFile:
+    json.dump(radiationImage, outFile)
+
+
+
+with open(filePath, "r") as read_file:
+    data = str(json.load(read_file))
+with open("file.txt", "w") as WR:
+    WR.write(data)
+
+
+
+with open("file.txt", "r") as infile, \
+     open("file.txt", 'w') as outfile:
+    data1 = infile.read()
+    data1 = data.replace(pyTime, "")
+    outfile.write(data1)
+
+with open("file.txt", "rb") as base:
+  png_recovered = base64.decodebytes(base.read())
+with open("temp.png", "wb") as PNG:
+  PNG.write(png_recovered)
