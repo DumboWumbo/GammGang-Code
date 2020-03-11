@@ -3,14 +3,15 @@ import json
 import time
 import os
 
+//Encodes an image into base64 on the file "testfile.txt"
 with open("Bad.jpg", "rb") as img_file:
   my_string = base64.b64encode(img_file.read())
 with open("testfile.txt", "w") as File:
   File.write((my_string.decode("utf-8")))
   openFile = open("testfile.txt")
 
+//Creates a diectory at "/tmp/expirement" with a JSON version of base64 and time
 path = "/tmp/experiment"
-
 try:
   os.mkdir(path)
 except OSError:
@@ -27,20 +28,21 @@ with open(filePath, "w") as outFile:
     json.dump(radiationImage, outFile)
 
 
-
+//Grabs information from JSON and turns it into a txt file
 with open(filePath, "r") as read_file:
     data = str(json.load(read_file))
 with open("file.txt", "w") as WR:
     WR.write(data)
 
 
-
+//replaces time signature in txt file with nothing. this allows the base64 to be converted to a png
 with open("file.txt", "r") as infile, \
      open("file.txt", 'w') as outfile:
     data1 = infile.read()
     data1 = data.replace(pyTime, "")
     outfile.write(data1)
 
+//converts base64 to png
 with open("file.txt", "rb") as base:
   png_recovered = base64.decodebytes(base.read())
 with open("temp.png", "wb") as PNG:
