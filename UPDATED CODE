@@ -1,0 +1,114 @@
+import time
+import base64
+import json
+import os
+import adafruit_vc0706
+
+# Accounts for pi boot up time
+time.sleep(5)
+
+# Change picLimit to match the amount of pictures the program should take
+picLimit = 60
+
+# Create a txt file that will hold the picNum value which will keep track of pictures taken
+with open("/home/pi/count.txt", "w") as count:
+    count.write("0")
+with open("/home/pi/count.txt", "r") as count:
+    picNum = int(count.read())
+
+# The program will conitnue to run until picLimit pictures have been taken
+while picNum < picLimit:
+
+
+    IMAGE_FILE = '/home/pi/image'+ str(picNum) + '.jpg'  # Full path to file name to save image.
+
+    # import serial
+    import serial
+
+    # Create a serial connection for the VC0706 connection
+    uart = serial.Serial("/dev/ttyS0", baudrate=115200, timeout=0.25)
+
+    # Setup VC0706 camera
+    vc0706 = adafruit_vc0706.VC0706(uart)
+
+    #  TESTING PURPOSES Print the version string from the camera.
+    #print("VC0706 version:")
+    #print(vc0706.version)
+
+    # Set the image size.
+    vc0706.image_size = adafruit_vc0706.IMAGE_SIZE_640x480
+
+
+
+    # Take a picture.
+    time.sleep(1)
+    if not vc0706.take_picture():
+        raise RuntimeError("Failed to take picture!")
+
+    # Print size of picture in bytes. [TESTING PURPOSES]
+    frame_length = vc0706.frame_length
+    #print("Picture size (bytes): {}".format(frame_length))
+
+    # Open a file for writing image (overwriting it if necessary).
+    stamp = time.monotonic()
+    with open(IMAGE_FILE, "wb") as outfile:
+        wcount = 0
+        while frame_length > 0:
+            t = time.monotonic()
+            # Compute how much data is left to read as the lesser of remaining bytes
+            # or the copy buffer size (32 bytes at a time).
+            to_read = min(frame_length, 32)
+            copy_buffer = bytearray(to_read)
+            # Read picture data into the copy buffer.
+            if vc0706.read_picture_into(copy_buffer) == 0:
+                raise RuntimeError("Failed to read picture frame data!")
+            # Write the data to SD card file and decrement remaining bytes.
+            outfile.write(copy_buffer)
+            frame_length -= 32
+            # Print a dot every 2k bytes to show progress.
+            wcount += 1
+            if wcount >= 64:
+               
+                wcount = 0
+
+#   Converts image into base64 and stores it into variable my_string
+    with open('/home/pi/image'+ str(picNum) +'.jpg', "rb") as img_file:
+      my_bytes = base64.b64encode(img_file.read())
+      my_string = ((my_bytes.decode("utf-8")))
+
+
+#   Path where json is dumped
+    path = "/tmp/experiment"
+
+#   Creates experiment folder if not already created
+    try:
+      os.mkdir(path)
+    except OSError:
+      print("Creation of directory %s unsuccesfull" % path)
+    else:
+      print("Creation of directory %s succesfull" % path)
+
+#   Text that will be put in json file
+    pyTime = str(time.time())
+    radiationImage = {
+       "TeamName": "GammaGang",
+       "Timestamp": pyTime,
+       "Data": my_string
+    }
+   
+
+#   Creates json file and dumps json into file
+    filePath= (path + "/" + str(time.time())+ ".json")
+    with open(filePath, "w") as outFile:
+        outFile.write(json.dumps(radiationImage, indent=4))
+        outFile.flush()
+        
+#   removes file after process is finished to avoid overlap coused by program restarting
+    os.remove('/home/pi/image'+ str(picNum) +'.jpg')
+
+#   Adds 1 to the file that is keeping track of pics taken
+    with open("/home/pi/count.txt", "w") as addfile:
+        picNum = picNum + 1
+        addfile.truncate(0)
+        addfile.write(str(picNum))
+    time.sleep(20)
